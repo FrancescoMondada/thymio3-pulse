@@ -1,0 +1,1136 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thymio 3 – ton cœur et ta respiration</title>
+<style>
+  :root { --accent: #6b4fbb; --coeur: #e5405e; --coeur2: #ff7a8f; --poumon: #ff9db0; --air: #5aa9f0; --inspire: #e3f0ff;
+          --gris: #5b6070; --bord: #dfe3ee; --fond: #f3f5fb; --carte: #fff; }
+  * { box-sizing: border-box; }
+  body { font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; color: #1f2333; background: var(--fond); }
+  main { max-width: 940px; margin: 0 auto; padding: 0 14px 40px; }
+  p { margin: 6px 0; }
+  button, select, input { font: inherit; padding: 8px 14px; margin: 4px 6px 4px 0; border-radius: 10px; border: 1px solid var(--bord); background: #fff; }
+  button { cursor: pointer; }
+  button.principal { background: var(--coeur); color: #fff; border: 0; padding: 12px 22px; font-weight: 700; font-size: 18px;
+                     box-shadow: 0 3px 0 #b02a45; }
+  button.principal:active { transform: translateY(2px); box-shadow: 0 1px 0 #b02a45; }
+  button.second { background: var(--accent); color: #fff; border: 0; font-weight: 600; }
+  button:disabled { opacity: 0.45; cursor: default; }
+  canvas { width: 100%; height: 200px; background: #fff; border: 1px solid var(--bord); border-radius: 10px; display: block; margin: 8px 0; }
+  canvas#rythme { height: 260px; border: 0; margin: 0; background: transparent; }
+  canvas#forme { height: 280px; }
+  table { border-collapse: collapse; margin: 8px 0; }
+  td, th { border: 1px solid var(--bord); padding: 4px 10px; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  #resultat { overflow-x: auto; }
+  .note { color: var(--gris); font-size: 14px; }
+  .ok { background: #d9f2dd; } .bof { background: #fff3c9; }
+
+  .bandeau { background: linear-gradient(120deg, #7b5cd6, #e5405e); color: #fff; padding: 22px 14px 26px; }
+  .bandeau > div { max-width: 940px; margin: 0 auto; }
+  .bandeau h1 { font-size: 28px; line-height: 1.15; margin: 0 0 6px; }
+  .bandeau p { margin: 0; font-size: 17px; opacity: 0.95; max-width: 640px; }
+  .carte { background: var(--carte); border: 1px solid var(--bord); border-radius: 18px; padding: 16px; margin: 14px 0;
+           box-shadow: 0 2px 10px rgba(40, 40, 90, 0.06); }
+  .carte h2 { font-size: 18px; margin: 0 0 6px; }
+
+  .etapes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: -16px; position: relative; }
+  .etape { background: var(--carte); border-radius: 16px; padding: 12px 14px; border: 1px solid var(--bord);
+           box-shadow: 0 4px 14px rgba(40, 40, 90, 0.12); }
+  .etape b.n { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent);
+               color: #fff; font-size: 15px; margin-right: 6px; }
+  .etape .t { font-weight: 700; }
+  .etape p { font-size: 14px; color: var(--gris); }
+  #etat { font-weight: 600; font-size: 14px; color: var(--accent); display: block; }
+  @media (max-width: 700px) { .etapes { grid-template-columns: 1fr; margin-top: -10px; } .bandeau h1 { font-size: 24px; } }
+
+  .scene2 { padding: 12px; }
+  .phase { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px 18px; border-radius: 14px; padding: 8px 14px;
+           color: #fff; font-weight: 800; transition: background .3s; }
+  .phase.repos { background: #8a90a5; } .phase.insp { background: #2b7be0; } .phase.exp { background: #ee7a2c; }
+  #consigne { font-size: 38px; line-height: 1.1; text-transform: uppercase; letter-spacing: .03em; }
+  #compte { font-size: 26px; font-weight: 700; opacity: .95; }
+  .grille { display: grid; grid-template-columns: minmax(0, 1fr) 210px; gap: 8px 16px; align-items: center; margin-top: 10px; }
+  @media (max-width: 760px) { .grille { grid-template-columns: 1fr; } #consigne { font-size: 30px; } #ligneLien { font-size: 19px; } }
+  .dessin { text-align: center; }
+  #corps { width: 100%; height: auto; display: block; margin: 0 auto; }
+  #ligneLien { font-size: 22px; font-weight: 700; margin-top: 8px; color: #2f3550; min-height: 1.4em; }
+  #tendance { font-size: 20px; font-weight: 800; min-height: 1.4em; }
+  #tendance.haut { color: #d6293f; } #tendance.bas { color: #2b7be0; }
+  .pouls { text-align: center; }
+  #bpm { font-size: 104px; font-weight: 800; line-height: 1; color: var(--coeur); font-variant-numeric: tabular-nums; }
+  .pouls .u { font-size: 17px; font-weight: 600; color: var(--gris); }
+  #moyenne { font-size: 14px; color: var(--gris); min-height: 1.4em; margin-top: 4px; }
+  #doigt { min-height: 3em; font-size: 15px; }
+  #bilan { font-size: 18px; font-weight: 600; margin: 0; }
+  #bilan:empty, #bilanCarte:has(#bilan:empty) { display: none; }
+  #bilanCarte { background: #fff6e0; border-color: #f0d890; }
+
+  details { border: 1px solid var(--bord); border-radius: 14px; background: var(--carte); margin: 10px 0; padding: 0 14px; }
+  summary { cursor: pointer; padding: 11px 0; font-weight: 600; }
+  details[open] { padding-bottom: 12px; }
+  .savoir li { margin: 4px 0; }
+  .question { background: #eef7ee; border-left: 4px solid #5fb86e; border-radius: 8px; padding: 6px 12px; margin: 8px 0; }
+  h3.sep { font-size: 14px; text-transform: uppercase; letter-spacing: .06em; color: var(--gris); margin: 24px 0 4px; }
+</style>
+</head>
+<body>
+<div class="bandeau"><div>
+  <h1>Ton cœur écoute ta respiration</h1>
+  <p>Le Thymio sent ton pouls à travers ton doigt. Respire lentement avec le guide et regarde ce que ton cœur fait.</p>
+</div></div>
+
+<main>
+<div class="etapes">
+  <div class="etape">
+    <div class="t"><b class="n">1</b>Branche le robot</div>
+    <button id="connecter" class="second">Connecter le robot</button><button id="deconnecter" disabled>Déconnecter</button>
+    <span id="etat">Pas connecté.</span>
+  </div>
+  <div class="etape">
+    <div class="t"><b class="n">2</b>Pose ton doigt</div>
+    <p>Robot à l'envers : un doigt sur un capteur de sol, sans bouger.</p>
+  </div>
+  <div class="etape">
+    <div class="t"><b class="n">3</b>Respire avec le guide</div>
+    <button id="respirer" class="principal">Commencer</button>
+  </div>
+</div>
+
+<div class="carte scene2">
+  <div id="phase" class="phase repos"><span id="consigne">Prêt ?</span><span id="compte">Appuie sur « Commencer »</span></div>
+  <div class="grille">
+    <div class="dessin">
+      <svg id="corps" viewBox="0 0 720 350" role="img" aria-label="Les poumons se remplissent d'air, le cœur bat plus vite">
+        <defs>
+          <radialGradient id="gP" cx="40%" cy="30%" r="80%"><stop offset="0" stop-color="#ffd9e0"/><stop offset="1" stop-color="#f58fa5"/></radialGradient>
+          <radialGradient id="gC" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#ff8a9d"/><stop offset="1" stop-color="#d92b4d"/></radialGradient>
+        </defs>
+        <rect id="fondAnim" x="0" y="0" width="720" height="350" rx="18" fill="#f3f5fb"/>
+        <!-- poumons -->
+        <g transform="translate(-20 0)">
+          <g stroke="#9aa3b8" stroke-width="3" fill="#e8ecf5" stroke-linejoin="round">
+            <rect x="178" y="8" width="24" height="86" rx="10"/>
+            <path d="M190 86 L156 118 L166 126 L190 106 L214 126 L224 118 Z"/>
+          </g>
+          <g id="poumonG"><path d="M180 90 C140 74 70 94 62 162 C55 216 80 262 120 268 C160 272 180 246 180 200 Z" fill="url(#gP)" stroke="#d65a79" stroke-width="3"/></g>
+          <g id="poumonD"><path d="M200 90 C240 74 310 94 318 162 C325 216 300 262 260 268 C220 272 200 246 200 200 Z" fill="url(#gP)" stroke="#d65a79" stroke-width="3"/></g>
+          <g id="air"><polygon points="-14,-9 14,-9 0,10"/><polygon points="-14,-9 14,-9 0,10"/><polygon points="-14,-9 14,-9 0,10"/></g>
+        </g>
+        <!-- lien -->
+        <path id="lien" d="M340 150 L410 150 M410 150 L392 130 M410 150 L392 170" fill="none" stroke="#8a90a5" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- cœur -->
+        <circle id="onde" cx="545" cy="150" r="0" fill="none" stroke="#e5405e" stroke-width="5" opacity="0"/>
+        <g id="coeur" transform="translate(545 150) scale(1.7)">
+          <path d="M0 -30 C-14 -58 -62 -48 -62 -8 C-62 28 -18 52 0 70 C18 52 62 28 62 -8 C62 -48 14 -58 0 -30 Z" fill="url(#gC)" stroke="#a81f3d" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M-40 -22 C-30 -34 -18 -36 -10 -32" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" opacity=".5"/>
+        </g>
+        <!-- barres -->
+        <g font-size="22" font-weight="700" fill="#2f3550" text-anchor="middle">
+          <text x="170" y="312">Air dans les poumons</text><text x="545" y="312">Vitesse du cœur</text>
+        </g>
+        <rect x="60" y="322" width="220" height="16" rx="8" fill="#dfe3ee"/><rect id="barAir" x="60" y="322" width="10" height="16" rx="8" fill="#2b7be0"/>
+        <rect x="435" y="322" width="220" height="16" rx="8" fill="#dfe3ee"/><rect id="barCoeur" x="435" y="322" width="10" height="16" rx="8" fill="#e5405e"/>
+      </svg>
+      <div id="ligneLien"></div>
+    </div>
+    <div class="pouls">
+      <div id="bpm">–</div>
+      <div class="u">battements par minute</div>
+      <div id="tendance"></div>
+      <div id="moyenne"></div>
+      <p id="doigt" class="note">Pas de robot.</p>
+    </div>
+  </div>
+</div>
+
+<div class="carte">
+  <h2>Ton pouls</h2>
+  <canvas id="rythme"></canvas>
+  <p class="note"><b style="color:#2b7be0">Bleu</b> : air dans les poumons. <b style="color:#e5405e">Rouge</b> : ton pouls.</p>
+</div>
+
+<div class="carte" id="bilanCarte"><p id="bilan"></p></div>
+
+<details class="savoir">
+  <summary>Pourquoi le cœur accélère quand j'inspire ?</summary>
+  <ul>
+    <li>Un nerf relie le cerveau au cœur et agit comme un <b>frein</b>.</li>
+    <li>Quand tu inspires, le frein se relâche : le cœur accélère. Quand tu expires, il ralentit.</li>
+    <li>C'est normal et sain. Plus tu respires lentement et profondément, plus on le voit.</li>
+  </ul>
+</details>
+
+<h3 class="sep">Pour aller plus loin</h3>
+
+<details>
+  <summary>Le pouls au cours d'une respiration</summary>
+  <div id="pliTexte" class="note">Fais d'abord l'exercice de respiration guidée (au moins 3 respirations).</div>
+  <canvas id="pli"></canvas>
+  <p class="note">Toutes les respirations de l'exercice sont superposées : pouls moyen à chaque seconde de la respiration.</p>
+</details>
+
+<details>
+  <summary>La forme d'un battement</summary>
+  <div id="formeTexte" class="note">Après un exercice ou un enregistrement.</div>
+  <canvas id="forme"></canvas>
+  <p class="note">Tous les battements sont superposés. Chaque point gris est une mesure du capteur, placée à son moment
+  dans le battement ; la ligne est leur moyenne. Vers le haut : plus de sang dans le doigt (moins de lumière renvoyée).</p>
+</details>
+
+<details>
+  <summary>Le signal du capteur</summary>
+  <p>Courbe en direct : <select id="canal"></select></p>
+  <p id="valeurs" class="note"></p>
+  <p id="diagnostic" class="note"></p>
+  <canvas id="courbe"></canvas>
+</details>
+
+<details>
+  <summary>Le rythme dans chaque capteur</summary>
+  <div id="resultat" class="note">Après un exercice ou un enregistrement.</div>
+  <canvas id="spectre"></canvas>
+  <p class="note">Spectre : en horizontal le rythme (battements par minute), en vertical la force de ce rythme dans le signal.</p>
+</details>
+
+<details>
+  <summary>Enregistrements et réglages</summary>
+  <p>Durée d'une inspiration (et d'une expiration) :
+    <select id="demiCycle">
+      <option value="3">3 s</option>
+      <option value="4">4 s</option>
+      <option value="5" selected>5 s</option>
+      <option value="6">6 s</option>
+    </select>
+  </p>
+  <p>Enregistrement sans guide :
+    <select id="duree">
+      <option value="30">30 s</option>
+      <option value="60" selected>60 s</option>
+      <option value="120">120 s</option>
+    </select>
+    <button id="enregistrer" disabled>Enregistrer</button>
+  </p>
+  <p><button id="csv" disabled>Télécharger le dernier enregistrement (CSV)</button></p>
+  <p>Analyser un fichier déjà enregistré : <input type="file" id="fichier" accept=".csv"></p>
+  <p class="note">L'exercice de respiration est enregistré lui aussi. Ce n'est pas une mesure médicale : le Thymio n'est pas un appareil de santé et les données ne quittent pas cette page.</p>
+</details>
+</main>
+
+<script>
+// ---------------------------------------------------------------------------
+// Robot link (firmware main/ble_spp.c): "others sensors" stream, 31 bytes, one packet about every 22 ms.
+// The ground IR values come from the STM32 board, which renews them about 10 times per second;
+// the colour sensor is read at 16 Hz (main/sensors.c).
+// ---------------------------------------------------------------------------
+const SERVICE = 0xabf0, STREAM = 0xabf2;
+const STREAM_WRITE_STATE = 0x01, OTHERS = 0x02;
+
+// <calcul>  (pure functions: tests/forme.test.mjs runs this part in node)
+const BPM_MIN = 42, BPM_MAX = 180;
+
+const CANAUX = [
+  { cle: 's0', nom: 'Sol IR gauche', court: 'gauche', couleur: '#9467bd', sol: true },
+  { cle: 's1', nom: 'Sol IR droit',  court: 'droit',  couleur: '#8c564b', sol: true },
+  { cle: 'r',  nom: 'Rouge',         couleur: '#d62728' },
+  { cle: 'g',  nom: 'Vert',          couleur: '#2ca02c' },
+  { cle: 'b',  nom: 'Bleu',          couleur: '#1f77b4' },
+  { cle: 'c',  nom: 'Clair',         couleur: '#7f7f7f' },
+];
+
+// Sharpness = peak / median of the spectrum. Noise alone gives about 3 to 20
+// (checked on simulated noise); a pulse of 1 % gives far more.
+const NET = 25, DOUTEUX = 18;
+
+// x minus its mean over +-1 s: removes the slow drift (finger pressure, warming).
+function sansDerive(t, x) {
+  const y = new Float64Array(x.length);
+  let a = 0, b = 0, somme = 0;
+  for (let i = 0; i < x.length; i++) {
+    while (b < x.length && t[b] <= t[i] + 1) somme += x[b++];
+    while (t[a] < t[i] - 1) somme -= x[a++];
+    y[i] = x[i] - somme / (b - a);
+  }
+  return y;
+}
+
+// Rhythm of one channel: strongest rhythm between BPM_MIN and BPM_MAX and how sharp it is.
+function mesurer(t, x, pas = 0.5) {
+  const duree = t[t.length - 1] - t[0];
+  let moyenne = 0;
+  for (const v of x) moyenne += v;
+  moyenne /= x.length;
+  const y = sansDerive(t, x);
+  const tri = Array.from(y).sort((p, q) => p - q);
+  const etendue = tri[Math.floor(tri.length * 0.95)] - tri[Math.floor(tri.length * 0.05)];
+  const h = new Float64Array(y.length);          // Hann window, real time stamps
+  for (let i = 0; i < y.length; i++) h[i] = y[i] * (0.5 - 0.5 * Math.cos(2 * Math.PI * (t[i] - t[0]) / duree));
+  const spectre = [];
+  for (let bpm = BPM_MIN; bpm <= BPM_MAX; bpm += pas) {
+    const w = 2 * Math.PI * bpm / 60;
+    let re = 0, im = 0;
+    for (let i = 0; i < y.length; i++) { re += h[i] * Math.cos(w * t[i]); im -= h[i] * Math.sin(w * t[i]); }
+    spectre.push({ bpm, p: re * re + im * im });
+  }
+  const pic = spectre.reduce((m, s) => s.p > m.p ? s : m);
+  const med = spectre.map(s => s.p).sort((p, q) => p - q)[spectre.length >> 1];
+  return {
+    moyenne, variation: moyenne ? 100 * etendue / moyenne : 0, plat: tri[0] === tri[tri.length - 1],
+    bpm: pic.bpm, nettete: med > 0 ? pic.p / med : 0, spectre,
+  };
+}
+
+// ---- The sensor's own samples ------------------------------------------------
+// The ground sensor has its own regular clock, slower than the packets: the same value is repeated in 4 or 5
+// packets. Counting packets between two changes gives back the sensor's samples on an exact time grid
+// (arrival times are useless for this: Bluetooth delivers packets in bursts).
+const P_DEFAUT = 4.55;                 // packets per sensor sample, as measured on a robot
+
+function changements(x) {
+  const ci = [];
+  for (let i = 1; i < x.length; i++) if (x[i] !== x[i - 1]) ci.push(i);
+  return ci;
+}
+
+// period of the sensor's clock, in packets: the one on which the changes line up best
+function horloge(ci, pas = 0.002) {
+  let P = 0, concentration = -1;
+  for (let p = 3; p <= 8; p += pas) {
+    let s = 0, c = 0;
+    for (const v of ci) { const a = 2 * Math.PI * v / p; s += Math.cos(a); c += Math.sin(a); }
+    const r = Math.hypot(s, c) / ci.length;
+    if (r > concentration) { concentration = r; P = p; }
+  }
+  return { P, concentration };
+}
+
+// serie = the sensor's samples; paquet[k] = packet at which sample k appeared
+function reconstruire(x, P) {
+  const serie = [x[0]], paquet = [0];
+  let avant = 0;
+  for (let i = 1; i < x.length; i++) {
+    if (x[i] === x[i - 1]) continue;
+    const k = Math.max(1, Math.round((i - avant) / P));
+    for (let j = 1; j < k; j++) { serie.push(serie[serie.length - 1]); paquet.push(avant + j * (i - avant) / k); }
+    serie.push(x[i]); paquet.push(i); avant = i;
+  }
+  return { serie, paquet };
+}
+
+function sansDeriveSerie(serie, fs) {            // mean over about 1.5 s removed
+  const N = serie.length, h = Math.round(fs * 0.75), y = new Float64Array(N), cumul = new Float64Array(N + 1);
+  for (let i = 0; i < N; i++) cumul[i + 1] = cumul[i] + serie[i];
+  for (let i = 0; i < N; i++) {
+    const a = Math.max(0, i - h), b = Math.min(N, i + h + 1);
+    y[i] = serie[i] - (cumul[b] - cumul[a]) / (b - a);
+  }
+  return y;
+}
+
+// ---- Is there a pulse? --------------------------------------------------------
+// A finger gives a signal that looks like itself one beat later, even when the rate changes with the breath
+// (a sharp peak in the spectrum would need a steady rate: a pulse swinging by 20 % loses it).
+// ressemblance = the highest correlation of a piece of signal with itself shifted by one possible beat length
+// (60/180 to 60/42 s), counted only if the correlation fell clearly lower for a shorter shift: a slow drift
+// also looks like itself when shifted, but without that dip.
+// Measured on pieces of 4 s: real finger 0.53 to 0.97; real sensors without finger at most 0.48; simulated
+// noise median 0.29 with rare peaks to 0.76. So the decision is taken on the median of several pieces.
+const Q_DOIGT = 0.5, Q_PERDU = 0.4, PIECE = 4;
+
+function ressemblance(y, a, b, fs) {
+  const lmin = Math.floor(fs * 60 / BPM_MAX), lmax = Math.ceil(fs * 60 / BPM_MIN);
+  let creux = 1, q = 0;
+  for (let l = 1; l <= lmax && l < (b - a) / 2; l++) {
+    let s = 0, e1 = 0, e2 = 0;
+    for (let i = a; i + l < b; i++) { s += y[i] * y[i + l]; e1 += y[i] * y[i]; e2 += y[i + l] * y[i + l]; }
+    const r = e1 > 0 && e2 > 0 ? s / Math.sqrt(e1 * e2) : 0;
+    if (l >= lmin && r - creux >= 0.4 && r > q) q = r;
+    creux = Math.min(creux, r);
+  }
+  return q;
+}
+const mediane = a => a.length ? [...a].sort((p, q) => p - q)[a.length >> 1] : 0;
+
+// median resemblance of a whole recording on one channel, pieces of 4 s taken every second
+function qualitePouls(ech, cle) {
+  const n = ech.length, x = ech.map(e => e[cle]), ci = changements(x);
+  if (ci.length < 30) return 0;
+  const h = horloge(ci, 0.005), P = h.concentration > 0.5 ? h.P : P_DEFAUT;
+  const fs = 1 / (P * (ech[n - 1].t - ech[0].t) / (n - 1)), { serie } = reconstruire(x, P);
+  const y = sansDeriveSerie(serie, fs), pas = Math.round(fs), l = Math.round(PIECE * fs), q = [];
+  for (let a = pas; a + l <= serie.length - pas; a += pas) q.push(ressemblance(y, a, a + l, fs));
+  return mediane(q);
+}
+
+// The ground sensor on which the finger is: the one whose signal looks most like a pulse, if it does enough.
+function capteurDuDoigt(canaux) {
+  const sol = canaux.filter(c => c.sol && c.qualite >= Q_DOIGT);
+  return sol.length ? sol.reduce((m, c) => c.qualite > m.qualite ? c : m) : null;
+}
+
+// ---- Pulse rate at each moment -----------------------------------------------
+// The signal is compared with a steady rhythm f: the product, averaged over two beats, is a vector whose angle
+// says how far the real beats are ahead of or behind that steady rhythm. The speed at which this angle turns is
+// the difference between the real rate and f. A mean over exactly two beats cancels what is not the pulse
+// itself (the slow drift and the second bump of the beat) and follows rates up to about a third away from f.
+// Three passes: f is first the strongest rhythm of the spectrum, then the mean rate found.
+// The first and last beat have no value (NaN). The caller must know that there is a pulse (see ressemblance).
+function rythmeInstantane(serie, fs) {
+  const N = serie.length;
+  if (N < 6 * fs) return null;
+  const m = mesurer(Array.from({ length: N }, (_, i) => i / fs), serie, 0.5);
+  if (m.plat) return null;
+  const y = sansDeriveSerie(serie, fs);
+  let f = m.bpm / 60, bpm = null, marge = 0;
+  for (let passe = 0; passe < 3; passe++) {
+    const M = Math.max(3, Math.round(fs / f));
+    if (N < 2 * M + 4) return null;
+    const angle = new Float64Array(N);
+    for (let k = M; k < N - M; k++) {
+      let re = 0, im = 0;
+      for (let j = -M; j <= M; j++) {
+        const w = 0.5 + 0.5 * Math.cos(Math.PI * j / (M + 1)), a = 2 * Math.PI * f * (k + j) / fs;
+        re += w * y[k + j] * Math.cos(a); im -= w * y[k + j] * Math.sin(a);
+      }
+      angle[k] = Math.atan2(im, re);
+    }
+    bpm = new Float64Array(N).fill(NaN);
+    let somme = 0, n = 0;
+    for (let k = M + 1; k < N - M - 1; k++) {
+      let d = angle[k + 1] - angle[k - 1];
+      d -= 2 * Math.PI * Math.round(d / (2 * Math.PI));
+      const fi = f + d / (4 * Math.PI) * fs;
+      bpm[k] = 60 * fi; somme += fi; n++;
+    }
+    f = Math.min(BPM_MAX / 60, Math.max(BPM_MIN / 60, somme / n)); marge = M + 1;
+  }
+  return { bpm, moyenne: 60 * f, marge };
+}
+
+// ---- Live: finger and pulse, called twice per second ---------------------------
+// direct = the packets of the last seconds ({ t, s0, s1, ... }), t = now. The state keeps what must last from one
+// call to the next. Result in etat.doigt (channel or null), etat.rythme ([{ t, bpm }]) and etat.diagnostic (text).
+// Once per second each ground sensor gets a resemblance on its last 4 s; a finger is accepted when the median
+// of the last 7 values reaches Q_DOIGT (at least 5 values), and given up when it falls under Q_PERDU.
+function nouveauSuivi() {
+  return { tour: 0, doigt: null, depuis: 0, q: { s0: [], s1: [] }, P: { s0: P_DEFAUT, s1: P_DEFAUT }, rythme: [], nombre: null, moyenne: null, diagnostic: '' };
+}
+function suivre(etat, direct, t, fenetre = 10) {
+  etat.tour++;
+  if (direct.length < 100) {
+    etat.doigt = null; etat.q = { s0: [], s1: [] }; etat.rythme = []; etat.nombre = null; etat.moyenne = null; etat.diagnostic = 'Trop peu de mesures.';
+    return;
+  }
+  const sol = CANAUX.filter(c => c.sol);
+  if (etat.tour % 2 === 0) {
+    const recent = direct.filter(p => p.t >= t - PIECE - 2), m = recent.length;
+    const tp = m > 1 ? (recent[m - 1].t - recent[0].t) / (m - 1) : 0.022;
+    for (const c of sol) {
+      const { serie } = reconstruire(recent.map(p => p[c.cle]), etat.P[c.cle]), fs = 1 / (etat.P[c.cle] * tp);
+      const l = Math.round(PIECE * fs), N = serie.length;
+      etat.q[c.cle].push(N >= l ? ressemblance(sansDeriveSerie(serie, fs), N - l, N, fs) : 0);
+      if (etat.q[c.cle].length > 7) etat.q[c.cle].shift();
+    }
+    const med = c => etat.q[c.cle].length >= 5 ? mediane(etat.q[c.cle]) : 0;
+    const mieux = sol.reduce((a, c) => med(c) > med(a) ? c : a);
+    if (etat.doigt && med(etat.doigt) < Q_PERDU) etat.doigt = null;
+    if (med(mieux) >= Q_DOIGT && (!etat.doigt || (etat.doigt.cle !== mieux.cle && med(etat.doigt) < Q_DOIGT))) {
+      etat.doigt = mieux; etat.depuis = t - DEPART;      // the placing of the finger, a few seconds earlier, is left out
+    }
+    etat.diagnostic = 'Ressemblance à un pouls sur les dernières secondes : ' +
+      sol.map(c => c.court + ' ' + med(c).toFixed(2)).join(', ') + ' (il faut ' + Q_DOIGT + ' pour voir un doigt).';
+  }
+  if (!etat.doigt) { etat.rythme = []; etat.nombre = null; etat.moyenne = null; return; }
+  // live pulse on the packets since the finger is there
+  const cle = etat.doigt.cle, depuis = direct.filter(p => p.t >= etat.depuis), x = depuis.map(p => p[cle]), m = depuis.length;
+  const ci = changements(x);
+  if (etat.tour % 10 === 0 && ci.length >= 60) {
+    const h = horloge(ci, 0.005);
+    if (h.concentration > 0.5) etat.P[cle] = h.P;
+  }
+  const P = etat.P[cle], tp = (depuis[m - 1].t - depuis[0].t) / (m - 1);
+  const { serie, paquet } = reconstruire(x, P), r = rythmeInstantane(serie, 1 / (P * tp));
+  const brut = [];
+  if (r) for (let k = 0; k < serie.length; k++)
+    if (!Number.isNaN(r.bpm[k])) brut.push({ t: depuis[m - 1].t - (m - 1 - paquet[k]) * tp, bpm: r.bpm[k] });
+  etat.rythme = lisser(brut);
+  // Two numbers. etat.nombre (the big one) = mean of the last 3 s of the smoothed curve: steady enough not to flicker,
+  // short enough to follow the swing of the breathing (a 10 s breath keeps about 85 % of its swing).
+  // etat.moyenne = mean over one breath (or 10 s), which cancels that swing; it moves only when the change is >= 1.
+  const dernier = etat.rythme.length ? etat.rythme[etat.rythme.length - 1].t : 0;
+  const court = etat.rythme.filter(p => p.t > dernier - 3);
+  if (court.length >= 3 && dernier - court[0].t >= 2) etat.nombre = court.reduce((a, p) => a + p.bpm, 0) / court.length;
+  else if (!etat.rythme.length) etat.nombre = null;
+  const fen = etat.rythme.filter(p => p.t > dernier - fenetre);
+  if (fen.length && dernier - fen[0].t >= 4) {
+    const moy = fen.reduce((a, p) => a + p.bpm, 0) / fen.length;
+    if (etat.moyenne === null || Math.abs(moy - etat.moyenne) >= 1) etat.moyenne = moy;
+  } else if (!etat.rythme.length) etat.moyenne = null;
+}
+
+// Points of the live curve: only plausible rates, nothing more than 40 % away from the median (what is left of the
+// placing of the finger or of a movement), then a light smoothing over about 1.2 s that removes the ripple of the
+// measure but leaves the swing of the breathing.
+const DEPART = 6;
+function lisser(pts) {
+  const bons = pts.filter(p => p.bpm >= BPM_MIN && p.bpm <= BPM_MAX);
+  if (bons.length < 5) return [];
+  const med = mediane(bons.map(p => p.bpm)), sains = bons.filter(p => Math.abs(p.bpm - med) <= 0.4 * med);
+  return sains.map((p, i) => {
+    let somme = 0, poids = 0;
+    for (let j = Math.max(0, i - 6); j <= Math.min(sains.length - 1, i + 6); j++) {
+      if (Math.abs(sains[j].t - p.t) > 0.65) continue;
+      const w = 0.5 + 0.5 * Math.cos(Math.PI * (sains[j].t - p.t) / 0.7);
+      somme += w * sains[j].bpm; poids += w;
+    }
+    return { t: p.t, bpm: somme / poids };
+  });
+}
+
+// ---- Shape of one beat -------------------------------------------------------
+// The heart is not in step with the sensor's clock, so from one beat to the next the samples fall at other
+// moments of the beat. Placing every sample at its moment in the beat (its phase) overlays all beats into
+// one fine curve, although the sensor only gives about 7 values per beat.
+function formeBattement(ech, cle) {
+  const n = ech.length, x = ech.map(e => e[cle]);
+  const periodePaquet = (ech[n - 1].t - ech[0].t) / (n - 1);
+  const ci = changements(x);
+  if (ci.length < 60) return { erreur: 'trop peu de changements de valeur' };
+  const { P, concentration } = horloge(ci);
+  if (concentration < 0.5) return { erreur: 'les valeurs ne suivent pas une horloge régulière' };
+  const { serie } = reconstruire(x, P);
+  const N = serie.length, fs = 1 / (P * periodePaquet);
+  const y = sansDeriveSerie(serie, fs);
+  let moyenne = 0;
+  for (const v of serie) moyenne += v / N;
+
+  // rhythm, then the phase of each sample: the signal filtered around that rhythm, as a rotating vector
+  const temps = Array.from({ length: N }, (_, i) => i / fs);
+  const f0 = mesurer(temps, serie, 0.1).bpm / 60;
+  const re = new Float64Array(N), im = new Float64Array(N);
+  for (let m = 1; m < N / 2; m++) {
+    const f = m * fs / N;
+    if (f < 0.65 * f0 || f > 1.35 * f0) continue;
+    let xr = 0, xi = 0;
+    for (let k = 0; k < N; k++) { const a = 2 * Math.PI * m * k / N; xr += y[k] * Math.cos(a); xi -= y[k] * Math.sin(a); }
+    for (let k = 0; k < N; k++) {
+      const a = 2 * Math.PI * m * k / N, c = Math.cos(a), s = Math.sin(a);
+      re[k] += xr * c - xi * s; im[k] += xr * s + xi * c;
+    }
+  }
+  const marge = Math.round(fs);                 // the filter is unreliable at both ends
+  const points = [], instants = [];
+  let phaseAvant = null;
+  for (let k = marge; k < N - marge; k++) {
+    const phase = Math.atan2(im[k], re[k]);
+    points.push({ u: ((phase / (2 * Math.PI)) % 1 + 1) % 1, v: -y[k] });
+    if (phaseAvant !== null && phase < phaseAvant - Math.PI)      // one more turn: one beat
+      instants.push((k - 1 + (Math.PI - phaseAvant) / (phase + 2 * Math.PI - phaseAvant)) / fs);
+    phaseAvant = phase;
+  }
+  if (points.length < 80) return { erreur: 'enregistrement trop court' };
+
+  // mean curve
+  const B = Math.min(40, Math.max(16, Math.round(points.length / 12)));
+  const cases = Array.from({ length: B }, () => []);
+  for (const p of points) cases[Math.min(B - 1, Math.floor(p.u * B))].push(p.v);
+  const moy = cases.map(c => c.length ? c.reduce((s, v) => s + v, 0) / c.length : NaN);
+  for (let i = 0; i < B; i++) if (Number.isNaN(moy[i])) moy[i] = (moy[(i + B - 1) % B] + moy[(i + 1) % B]) / 2 || 0;
+  let dispersion = 0, nd = 0;
+  cases.forEach((c, i) => { for (const v of c) { dispersion += (v - moy[i]) ** 2; nd++; } });
+  dispersion = Math.sqrt(dispersion / nd);
+  const pied = moy.indexOf(Math.min(...moy)), sommet = moy.indexOf(Math.max(...moy));
+  const amplitude = moy[sommet] - moy[pied], periode = 1 / f0;
+
+  // the beat starts at its foot (lowest point), drawn at 15 % of the width
+  const DEBUT = 0.15, tourner = u => ((u - (pied + 0.5) / B + DEBUT) % 1 + 1) % 1;
+  const intervalles = instants.slice(1).map((v, i) => v - instants[i]).sort((a, b) => a - b);
+  return {
+    cle, N, fs, concentration, periode, moyenne, amplitude, dispersion, debut: DEBUT,
+    // mean rate over the recording, from the first to the last beat seen
+    bpm: instants.length > 2 ? 60 * (instants.length - 1) / (instants[instants.length - 1] - instants[0]) : 60 * f0,
+    montee: (((sommet - pied) % B + B) % B) / B * periode,
+    battements: instants.length,
+    intervalles: intervalles.length ? { min: intervalles[0], med: intervalles[intervalles.length >> 1], max: intervalles[intervalles.length - 1] } : null,
+    points: points.map(p => ({ u: tourner(p.u), v: p.v })),
+    courbe: moy.map((v, i) => ({ u: tourner((i + 0.5) / B), v })).sort((a, b) => a.u - b.u),
+  };
+}
+
+// ---- Pulse and breathing -----------------------------------------------------
+// Each packet of a guided exercise carries resp = seconds since the start of the current breath (-1 without
+// guide) and cycle = length of a whole breath. All breaths are overlaid: mean pulse at each second of the breath.
+function analyserRespiration(ech, cle) {
+  const guide = ech.filter(e => e.resp >= 0);
+  if (guide.length < 200) return null;
+  const n = ech.length, x = ech.map(e => e[cle]), ci = changements(x);
+  if (ci.length < 60) return null;
+  const { P, concentration } = horloge(ci);
+  if (concentration < 0.5) return null;
+  const { serie, paquet } = reconstruire(x, P);
+  const tp = (ech[n - 1].t - ech[0].t) / (n - 1), r = rythmeInstantane(serie, 1 / (P * tp));
+  if (!r) return null;
+  const cycle = guide[0].cycle || 10, B = Math.round(cycle), cases = Array.from({ length: B }, () => []);
+  const points = [];
+  for (let k = 0; k < serie.length; k++) {
+    if (Number.isNaN(r.bpm[k])) continue;
+    const e = ech[Math.min(n - 1, Math.round(paquet[k]))];
+    points.push({ t: ech[0].t + paquet[k] * tp, bpm: r.bpm[k], resp: e.resp });
+    if (e.resp >= 0) cases[Math.min(B - 1, Math.floor(e.resp / cycle * B))].push(r.bpm[k]);
+  }
+  if (cases.some(c => c.length < 3)) return null;
+  const pli = cases.map((c, i) => ({ s: (i + 0.5) * cycle / B, bpm: c.reduce((s, v) => s + v, 0) / c.length }));
+  const haut = pli.reduce((m, p) => p.bpm > m.bpm ? p : m), bas = pli.reduce((m, p) => p.bpm < m.bpm ? p : m);
+  return {
+    cle, cycle, points, pli, max: haut.bpm, min: bas.bpm, sMax: haut.s, sMin: bas.s, moyenne: r.moyenne,
+    respirations: (guide[guide.length - 1].t - guide[0].t) / cycle,
+  };
+}
+
+function analyser(ech) {
+  const t = ech.map(e => e.t);
+  const duree = t[t.length - 1] - t[0];
+  const res = { duree, n: ech.length, cadence: ech.length / duree, canaux: [] };
+  for (const c of CANAUX) res.canaux.push({ ...c, ...mesurer(t, ech.map(e => e[c.cle])), qualite: c.sol ? qualitePouls(ech, c.cle) : null });
+  res.doigt = capteurDuDoigt(res.canaux);
+  res.forme = res.doigt ? formeBattement(ech, res.doigt.cle) : null;
+  res.respiration = res.doigt ? analyserRespiration(ech, res.doigt.cle) : null;
+  return res;
+}
+
+const COLONNES = { t_s: 't', rouge: 'r', vert: 'g', bleu: 'b', clair: 'c', sol_ir_gauche: 's0', sol_ir_droit: 's1',
+                   resp_s: 'resp', resp_cycle_s: 'cycle' };
+function ecrireCsv(ech) {
+  const lignes = [Object.keys(COLONNES).join(',')];
+  for (const e of ech)
+    lignes.push([e.t.toFixed(4), e.r, e.g, e.b, e.c, e.s0, e.s1, e.resp >= 0 ? e.resp.toFixed(2) : '', e.resp >= 0 ? e.cycle : ''].join(','));
+  return lignes.join('\n') + '\n';
+}
+function lireCsv(texte) {
+  const lignes = texte.split('\n'), noms = lignes[0].trim().split(',').map(nom => COLONNES[nom]), ech = [];
+  for (const ligne of lignes.slice(1)) {
+    const v = ligne.trim().split(',');
+    if (v.length < 7) continue;
+    const e = { resp: -1, cycle: 0 };
+    noms.forEach((nom, i) => { if (nom && v[i] !== '' && v[i] !== undefined) e[nom] = Number(v[i]); });
+    if (['t', 's0', 's1'].every(k => Number.isFinite(e[k]))) ech.push(e);
+  }
+  return ech;
+}
+
+// Simulated recording. The left ground sensor carries a realistic beat (fast rise, second bump),
+// sampled by a 10 Hz clock; the colour sensor is read at 16 Hz; one packet every 22 ms.
+// rsa > 0: guided breathing of 10 s, the pulse rises by that share in the inspiration and falls in the expiration.
+function ondeModele(u) {            // one beat, u from 0 to 1, values from 0 to about 1
+  const bosse = (c, l) => Math.exp(-(((u - c + 1.5) % 1 - 0.5) ** 2) / (2 * l * l));
+  return bosse(0.17, 0.075) + 0.42 * bosse(0.42, 0.11) - 0.05;
+}
+function simuler(genre, duree = 30, bpm = 72, profondeur = 0.04, rsa = 0) {
+  const ech = [], bruit = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2;
+  const phase0 = Math.random();
+  let phase = phase0, tAvant = 0, tSol = 0, tCouleur = 0, sol = null, couleur = null, lent = 0;
+  for (let k = 0; k * 0.02197 <= duree; k++) {
+    const t = k * 0.02197;
+    lent += (Math.random() - 0.5) * 0.004;                       // the heart rate wanders a little
+    lent *= 0.999;
+    phase += (t - tAvant) * bpm / 60 * (1 + lent + 0.03 * Math.sin(t / 0.9) + rsa * Math.sin(2 * Math.PI * t / 10)); tAvant = t;
+    const p = genre === 'pouls' ? ondeModele(phase % 1) : 0, derive = 1 + 0.02 * Math.sin(t / 7);
+    if (t >= tSol) {
+      tSol += 0.0996;
+      sol = { s0: Math.round(405 * derive * (1 - profondeur * p) + bruit()), s1: Math.round(183 * derive + bruit()) };
+    }
+    if (t >= tCouleur) {
+      tCouleur += 0.0625;
+      const v = (niveau, part) => Math.round(niveau * derive * (1 - 0.25 * profondeur * part * p) + bruit() * Math.sqrt(niveau) * 0.15);
+      couleur = { r: v(900, 0.5), g: v(1400, 1), b: v(700, 0.8), c: v(2600, 0.7) };
+    }
+    ech.push({ ...couleur, ...sol, t: t + Math.random() * 0.004, resp: rsa ? t % 10 : -1, cycle: rsa ? 10 : 0 });
+  }
+  ech.bpmReel = 60 * (phase - phase0) / tAvant;     // the rate really played
+  return ech;
+}
+// </calcul>
+
+const $ = id => document.getElementById(id);
+const maintenant = () => performance.now() / 1000;
+const TAMPON = 45, FENETRE = 40;      // seconds kept for the live pulse / shown on the pulse curve
+const DUREE_MAX_EXERCICE = 300;
+
+let caracteristique = null;
+let direct = [];          // last TAMPON seconds of packets
+let enreg = null;         // packets being recorded
+let dernier = null;       // last finished recording
+let t0 = 0, duree = 60;
+let doigtDirect = null;   // ground sensor on which a finger is seen right now
+let rythme = [];          // live pulse: { t, bpm }, history kept for the curve (it does not vanish when the finger leaves)
+let guide = null;         // running breathing guide: { t0, cycle }
+let guides = [];          // guides shown on the pulse curve: { t0, fin, cycle }
+let demoDebut = null;
+let nombre = null;        // big number: mean of the last 3 s
+let essai = null;         // current or last trial (guide or recording): { debut, fin }; the curve scrolls only while fin is null
+
+$('canal').add(new Option('Automatique (doigt)', 'auto'));
+for (const c of CANAUX) $('canal').add(new Option(c.nom, c.cle));
+
+function decoder(dv) {
+  if (dv.byteLength < 18 || dv.getUint8(0) !== OTHERS) return null;
+  return {
+    r: dv.getUint16(1, true), g: dv.getUint16(3, true), b: dv.getUint16(5, true), c: dv.getUint16(7, true),
+    s0: dv.getUint16(14, true), s1: dv.getUint16(16, true),
+  };
+}
+
+function recevoir(e, t) {
+  e.t = t;
+  e.resp = guide ? (t - guide.t0) % guide.cycle : -1;
+  e.cycle = guide ? guide.cycle : 0;
+  direct.push(e);
+  while (direct.length && direct[0].t < t - TAMPON) direct.shift();
+  if (enreg) {
+    enreg.push({ ...e, t: t - t0 });
+    if (t - t0 >= duree) terminer();
+    else if (!guide) $('etat').textContent = 'Enregistrement… encore ' + Math.ceil(duree - (t - t0)) + ' s. Ne pas bouger.';
+  }
+}
+
+// ---- twice per second: finger, live pulse -------------------------------------
+const suivi = nouveauSuivi();
+setInterval(() => {
+  const n = direct.length, t = maintenant();
+  if (n && direct[n - 1].t < t - 2) direct = [];                 // stream stopped
+  suivre(suivi, direct, t, guide ? guide.cycle : 10);
+  doigtDirect = suivi.doigt;
+  // the curve keeps what was measured: if the finger leaves, the drawing scrolls away instead of vanishing
+  if (suivi.rythme.length) rythme = rythme.filter(p => p.t < suivi.rythme[0].t).concat(suivi.rythme);
+  rythme = rythme.filter(p => p.t >= t - DUREE_MAX_EXERCICE);
+  if (direct.length) $('valeurs').textContent = CANAUX.map(c => c.nom + ' ' + direct[direct.length - 1][c.cle]).join(' · ');
+  $('diagnostic').textContent = suivi.diagnostic;
+  nombre = suivi.nombre;
+  $('bpm').textContent = nombre === null ? '–' : nombre.toFixed(0);
+  const ecart = suivi.nombre !== null && suivi.moyenne !== null ? suivi.nombre - suivi.moyenne : 0;
+  $('tendance').className = ecart > 1.5 ? 'haut' : ecart < -1.5 ? 'bas' : '';
+  $('tendance').textContent = suivi.nombre === null ? '' : ecart > 1.5 ? '▲ plus vite que ta moyenne' : ecart < -1.5 ? '▼ plus lent que ta moyenne' : '= comme ta moyenne';
+  $('moyenne').textContent = suivi.moyenne === null ? '' : (guide ? 'Moyenne sur une respiration : ' : 'Moyenne sur 10 s : ') + suivi.moyenne.toFixed(0);
+  $('doigt').textContent = !direct.length ? (caracteristique ? 'En attente des mesures…' : 'Connecte le robot (étape 1).')
+    : !doigtDirect ? 'Pose un doigt sur un capteur de sol et ne bouge plus.'
+    : suivi.nombre === null ? 'Doigt reconnu sur le capteur ' + doigtDirect.court + '. Je cherche ton pouls…' : 'Doigt reconnu sur le capteur ' + doigtDirect.court + '.';
+}, 500);
+
+// ---- connection ---------------------------------------------------------------
+let appareilBt = null;
+$('deconnecter').onclick = () => { if (appareilBt && appareilBt.gatt.connected) appareilBt.gatt.disconnect(); };
+$('connecter').onclick = async () => {
+  try {
+    if (!navigator.bluetooth) throw new Error('Ce navigateur n\'a pas le Bluetooth web (utiliser Chrome).');
+    const appareil = await navigator.bluetooth.requestDevice({ filters: [{ services: [SERVICE] }] });
+    $('etat').textContent = 'Connexion…';
+    appareil.addEventListener('gattserverdisconnected', () => {
+      caracteristique = null; appareilBt = null; $('enregistrer').disabled = true; $('deconnecter').disabled = true; $('connecter').disabled = false;
+      $('etat').textContent = 'Robot déconnecté.';
+      if (guide) arreterGuide(); else if (enreg) terminer();
+    });
+    const serveur = await appareil.gatt.connect();
+    appareilBt = appareil;
+    const service = await serveur.getPrimaryService(SERVICE);
+    caracteristique = await service.getCharacteristic(STREAM);
+    caracteristique.addEventListener('characteristicvaluechanged', ev => {
+      const e = decoder(ev.target.value);
+      if (e) recevoir(e, maintenant());
+    });
+    await caracteristique.startNotifications();
+    await caracteristique.writeValueWithResponse(new Uint8Array([STREAM_WRITE_STATE, OTHERS]));
+    $('enregistrer').disabled = false; $('deconnecter').disabled = false; $('connecter').disabled = true;
+    $('etat').textContent = 'Connecté.';
+  } catch (err) {
+    $('etat').textContent = 'Erreur : ' + err.message;
+  }
+};
+
+// ---- breathing guide ------------------------------------------------------------
+function demarrerGuide() {
+  const cycle = 2 * Number($('demiCycle').value);
+  let debut = maintenant();
+  if (demoDebut !== null) debut = demoDebut + Math.floor((debut - demoDebut) / 10) * 10;   // the simulated breath is fixed
+  guide = { t0: debut, cycle }; ancienFin = false; ancienEtat = '';
+  essai = { debut, fin: null };
+  guides.push({ t0: debut, fin: null, cycle });
+  if (guides.length > 6) guides.shift();
+  $('respirer').textContent = 'Arrêter';
+  $('bilan').textContent = '';
+  if (caracteristique) {                       // the exercise is recorded
+    enreg = []; t0 = maintenant(); duree = DUREE_MAX_EXERCICE;
+    $('enregistrer').disabled = true;
+    $('etat').textContent = 'Exercice en cours.';
+  }
+}
+function fermerGuide() {
+  guides[guides.length - 1].fin = maintenant();
+  guide = null;
+  $('respirer').textContent = 'Commencer';
+  ancienFin = true; ancienEtat = '';
+  if (essai && essai.fin === null) essai.fin = maintenant();
+}
+function arreterGuide() {
+  fermerGuide();
+  if (enreg) terminer();
+}
+$('respirer').onclick = () => guide ? arreterGuide() : demarrerGuide();
+
+// Cartoon: lungs on the left, heart on the right, nothing overlaps. The lungs swell with the guide, the heart beats at the
+// measured rate, and two bars side by side (air in the lungs / speed of the heart) show that they go up and down together.
+const TXT = {
+  repos: 'Pose ton doigt, puis appuie sur « Commencer ».',
+  insp: 'Plus d\'air dans les poumons → le cœur bat plus vite',
+  exp: 'Moins d\'air dans les poumons → le cœur ralentit',
+};
+const bosse = (x, c, w) => { const d = (x - c) / w; return Math.abs(d) < 1 ? Math.cos(d * Math.PI / 2) ** 2 : 0; };
+const FOND = { repos: '#f3f5fb', insp: '#e6f1ff', exp: '#fff0e4' };
+let phaseCoeur = 0, precedent = maintenant(), bpmCoeur = 70, ancienEtat = '', fracCoeur = 0.5, ancienFin = false;
+const airU = (s, cycle) => { const demi = cycle / 2, x = s < demi ? s / demi : 1 - (s - demi) / demi; return (1 - Math.cos(Math.PI * x)) / 2; };   // 0 empty, 1 full
+
+// Where the pulse stands between the lowest and highest values of the last 30 s (at least 10 per minute apart)
+function fractionPouls() {
+  const t = maintenant(), pts = rythme.filter(p => p.t > t - 30);
+  if (nombre === null || pts.length < 5) return 0.5;
+  const tri = pts.map(p => p.bpm).sort((a, b) => a - b);
+  let lo = tri[Math.floor(tri.length * 0.03)], hi = tri[Math.ceil(tri.length * 0.97) - 1];
+  if (hi - lo < 10) { const m = (hi + lo) / 2; lo = m - 5; hi = m + 5; }
+  return Math.min(1, Math.max(0, (nombre - lo) / (hi - lo)));
+}
+
+function animerGuide() {
+  const t = maintenant(), dt = Math.min(0.1, t - precedent); precedent = t;
+  let u, etat = 'repos', inspire = true;
+  if (guide) {
+    const s = (t - guide.t0) % guide.cycle, demi = guide.cycle / 2; inspire = s < demi; etat = inspire ? 'insp' : 'exp';
+    u = airU(s, guide.cycle);
+    $('compte').textContent = Math.ceil(inspire ? demi - s : guide.cycle - s) + ' s';
+  } else u = 0.35 + 0.05 * Math.sin(t * 1.2);                               // quiet rest breathing
+  const sx = 0.84 + 0.26 * u, sy = 0.8 + 0.3 * u, tr = 'translate(190 90) scale(' + sx.toFixed(3) + ' ' + sy.toFixed(3) + ') translate(-190 -90)';
+  $('poumonG').setAttribute('transform', tr); $('poumonD').setAttribute('transform', tr);
+  const air = $('air').children, dir = inspire ? 1 : -1;
+  for (let k = 0; k < 3; k++) {
+    const q = ((t * 0.5 * dir + k / 3) % 1 + 1) % 1;
+    air[k].setAttribute('transform', 'translate(190 ' + (24 + 62 * q).toFixed(1) + ') scale(1 ' + dir + ')');
+    air[k].setAttribute('fill', inspire ? '#2b7be0' : '#ee7a2c'); air[k].setAttribute('opacity', guide ? 1 : 0.4);
+  }
+  // heart: the real rate sets only WHERE it stands between its low and high of the last 30 s; the beat is then drawn
+  // with an exaggerated difference (about 40 to 140 beats per minute on screen, stronger beat when fast)
+  fracCoeur += (fractionPouls() - fracCoeur) * Math.min(1, dt * 4);
+  const vue = nombre === null ? 60 : 40 + 100 * fracCoeur;
+  phaseCoeur = (phaseCoeur + dt * vue / 60) % 1;
+  const ampl = nombre === null ? 0.5 : 0.6 + 0.9 * fracCoeur;
+  const f = 1 + ampl * (0.14 * bosse(phaseCoeur, 0.08, 0.1) + 0.08 * bosse(phaseCoeur, 0.3, 0.09));
+  $('coeur').setAttribute('transform', 'translate(545 150) scale(' + (1.7 * f).toFixed(3) + ')');
+  const onde = $('onde'), pr = Math.min(1, phaseCoeur / 0.6);
+  onde.setAttribute('r', (110 + 55 * pr).toFixed(1)); onde.setAttribute('opacity', nombre === null ? 0 : (0.55 * (1 - pr)).toFixed(2));
+  // the two bars
+  $('barAir').setAttribute('width', (10 + 210 * u).toFixed(1)); $('barCoeur').setAttribute('width', (10 + 210 * fracCoeur).toFixed(1));
+  // arrow between: blue and thick when the air comes in
+  const lien = $('lien'); lien.setAttribute('stroke', !guide ? '#8a90a5' : inspire ? '#2b7be0' : '#ee7a2c'); lien.setAttribute('stroke-width', (6 + 12 * u).toFixed(1));
+  if (etat !== ancienEtat) {
+    ancienEtat = etat;
+    $('phase').className = 'phase ' + etat;
+    $('consigne').textContent = etat === 'insp' ? 'Inspire' : etat === 'exp' ? 'Expire' : (ancienFin ? 'Terminé' : 'Prêt ?');
+    $('fondAnim').setAttribute('fill', FOND[etat]);
+    $('ligneLien').textContent = etat === 'repos' && ancienFin ? 'Regarde la courbe plus bas.' : TXT[etat];
+    if (etat === 'repos') $('compte').textContent = ancienFin ? '' : 'Appuie sur « Commencer »';
+  }
+  requestAnimationFrame(animerGuide);
+}
+requestAnimationFrame(animerGuide);
+
+// ---- recordings -----------------------------------------------------------------
+$('enregistrer').onclick = () => {
+  duree = Number($('duree').value);
+  enreg = []; t0 = maintenant();
+  essai = { debut: t0, fin: null };
+  $('enregistrer').disabled = true;
+};
+
+function terminer() {
+  if (guide) fermerGuide();                    // the exercise reached its longest duration
+  dernier = enreg; enreg = null;
+  if (essai && essai.fin === null) essai.fin = maintenant();
+  $('enregistrer').disabled = !caracteristique;
+  if (dernier.length < 500) { $('etat').textContent = 'Enregistrement trop court pour être analysé.'; return; }
+  $('csv').disabled = false;
+  $('etat').textContent = 'Enregistrement terminé (' + (dernier[dernier.length - 1].t).toFixed(0) + ' s).';
+  montrer(analyser(dernier));
+}
+
+$('csv').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([ecrireCsv(dernier)], { type: 'text/csv' }));
+  a.download = 'thymio3-pouls-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.csv';
+  a.click();
+};
+
+$('fichier').onchange = async ev => {
+  const f = ev.target.files[0];
+  if (!f) return;
+  const ech = lireCsv(await f.text());
+  if (ech.length < 500) { $('etat').textContent = 'Fichier illisible ou trop court.'; return; }
+  dernier = ech; $('csv').disabled = false;
+  $('etat').textContent = 'Fichier « ' + f.name + ' » : ' + ech.length + ' mesures.';
+  montrer(analyser(ech));
+};
+
+// ---------------------------------------------------------------------------
+// Display of a finished recording
+// ---------------------------------------------------------------------------
+function montrer(res) {
+  dernierRes = res;
+  let h = '<p>' + res.n + ' paquets en ' + res.duree.toFixed(1) + ' s (' + res.cadence.toFixed(0) + ' par seconde).</p>';
+  h += '<table><tr><th>Canal</th><th>Niveau moyen</th><th>Variation</th><th>Rythme le plus fort</th><th>Netteté</th><th>Ressemblance à un pouls</th></tr>';
+  for (const c of res.canaux) {
+    const avis = !c.sol ? '–' : c.qualite.toFixed(2) + (c.qualite >= Q_DOIGT ? ' : doigt' : '');
+    const cl = c.sol && c.qualite >= Q_DOIGT ? 'ok' : '';
+    h += '<tr class="' + cl + '"><td style="color:' + c.couleur + '">' + c.nom + '</td><td>' + c.moyenne.toFixed(0) +
+      '</td><td>' + c.variation.toFixed(2) + ' %</td><td>' + (c.plat ? '–' : c.bpm.toFixed(0) + ' /min') +
+      '</td><td>' + c.nettete.toFixed(1) + '</td><td>' + avis + '</td></tr>';
+  }
+  h += '</table><p>Netteté = hauteur du pic du spectre divisée par son niveau habituel ; elle baisse quand le pouls varie. ' +
+    'Ressemblance = à quel point le signal se répète d\'un battement au suivant (0 à 1) ; à partir de ' + Q_DOIGT + ' la page voit un doigt.</p>';
+  $('resultat').innerHTML = h;
+
+  const f = res.forme;
+  if (!res.doigt) {
+    $('formeTexte').textContent = 'Aucun pouls net sur les capteurs de sol : pas de forme.';
+  } else if (f.erreur) {
+    $('formeTexte').textContent = 'Doigt sur le capteur « ' + res.doigt.nom + ' », mais forme impossible : ' + f.erreur + '.';
+  } else {
+    $('formeTexte').innerHTML = '<p><b>Doigt sur le capteur « ' + res.doigt.nom + ' ».</b> Pouls ' + f.bpm.toFixed(1) + ' /min, ' +
+      f.battements + ' battements superposés.</p>' +
+      '<p>Amplitude ' + f.amplitude.toFixed(1) + ' unités (' + (100 * f.amplitude / f.moyenne).toFixed(1) + ' % du niveau), ' +
+      'montée en ' + (1000 * f.montee).toFixed(0) + ' ms, écart des points autour de la ligne ± ' + f.dispersion.toFixed(1) + ' unité(s).</p>' +
+      '<p>Le capteur a donné ' + f.N + ' valeurs à ' + f.fs.toFixed(2) + ' par seconde ; la ligne a un point tous les ' +
+      (1000 * f.periode / f.courbe.length).toFixed(0) + ' ms.' +
+      (f.intervalles ? ' Intervalle entre battements : de ' + f.intervalles.min.toFixed(2) + ' à ' + f.intervalles.max.toFixed(2) +
+        ' s (médiane ' + f.intervalles.med.toFixed(2) + ' s).' : '') + '</p>';
+  }
+
+  const r = res.respiration, avecGuide = dernier.some(e => e.resp >= 0);
+  if (r && r.respirations >= 2.5) {
+    const phrase = 'Pendant ' + Math.round(r.respirations) + ' respirations guidées, le pouls est passé en moyenne de ' +
+      r.min.toFixed(0) + ' à ' + r.max.toFixed(0) + ' battements par minute au cours d\'une respiration.';
+    $('bilan').textContent = phrase;
+    const demi = r.cycle / 2, ou = s => s < demi ? 'à la ' + Math.ceil(s) + 'e seconde de l\'inspiration' : 'à la ' + Math.ceil(s - demi) + 'e seconde de l\'expiration';
+    $('pliTexte').innerHTML = '<p>' + phrase + '</p><p>Le plus rapide ' + ou(r.sMax) + ', le plus lent ' + ou(r.sMin) +
+      '. Pouls moyen de l\'exercice : ' + r.moyenne.toFixed(0) + ' par minute.</p>';
+  } else if (avecGuide) {
+    $('bilan').textContent = !res.doigt ? 'Pas de pouls net pendant l\'exercice : le doigt a-t-il bougé ?'
+      : 'Exercice trop court : il faut au moins 3 respirations.';
+    $('pliTexte').textContent = $('bilan').textContent;
+  }
+  redessiner();
+}
+
+// ---------------------------------------------------------------------------
+// Drawings
+// ---------------------------------------------------------------------------
+const POLICE = '24px system-ui';
+
+// A canvas sized to its place on the screen, so that text keeps the same size on a phone and on a computer.
+// Drawing units are half screen pixels. W = 0: the canvas is hidden (closed section), nothing to draw.
+function toile(id) {
+  const cv = $(id), l = cv.clientWidth, h = cv.clientHeight, dpr = window.devicePixelRatio || 1;
+  if (!l) return { W: 0 };
+  const lp = Math.round(l * dpr), hp = Math.round(h * dpr);
+  if (cv.width !== lp || cv.height !== hp) { cv.width = lp; cv.height = hp; }
+  const g = cv.getContext('2d');
+  g.setTransform(dpr / 2, 0, 0, dpr / 2, 0, 0);
+  g.clearRect(0, 0, 2 * l, 2 * h);
+  g.textAlign = 'left';
+  return { g, W: 2 * l, H: 2 * h };
+}
+
+// the drawings of the last recording are made again when a section opens or the window changes
+let dernierRes = null;
+function redessiner() {
+  if (!dernierRes) return;
+  const f = dernierRes.forme, r = dernierRes.respiration;
+  dessinerSpectre(dernierRes);
+  dessinerForme(f && !f.erreur ? f : null);
+  dessinerPli(r && r.respirations >= 2.5 ? r : null);
+}
+document.querySelectorAll('details').forEach(d => d.addEventListener('toggle', redessiner));
+window.addEventListener('resize', redessiner);
+
+function dessinerRythme() {
+  const { g, W, H } = toile('rythme');
+  requestAnimationFrame(dessinerRythme);
+  if (!W) return;
+  const G = 70, D = 16, HAUT = 14, BAS = 40;
+  // Scrolls only during a trial. When it ends the picture stops and shows the whole trial.
+  const fige = essai && essai.fin !== null, tF = fige ? essai.fin : maintenant();
+  const dur = fige ? Math.min(DUREE_MAX_EXERCICE, Math.max(20, essai.fin - essai.debut + 2)) : FENETRE;
+  const X = v => G + (W - G - D) * (1 - (tF - v) / dur);
+  g.fillStyle = '#f8f9fd'; g.fillRect(G, HAUT, W - G - D, H - HAUT - BAS);
+  // air in the lungs (the guide's breathing), behind the pulse
+  const bas = H - BAS, hautAir = HAUT + (bas - HAUT) * 0.12;
+  for (const q of guides) {
+    const fin = q.fin === null ? tF : q.fin;
+    g.beginPath(); let debut = true;
+    const t1 = Math.max(q.t0, tF - dur), t2 = Math.min(fin, tF);
+    if (t2 <= t1) continue;
+    for (let v = t1; v <= t2 + 0.001; v += 0.2) {
+      const y = bas - (bas - hautAir) * airU((v - q.t0) % q.cycle, q.cycle);
+      debut ? g.moveTo(X(v), y) : g.lineTo(X(v), y); debut = false;
+    }
+    g.lineTo(X(t2), bas); g.lineTo(X(t1), bas); g.closePath();
+    g.fillStyle = 'rgba(43, 123, 224, 0.16)'; g.fill();
+    g.strokeStyle = 'rgba(43, 123, 224, 0.55)'; g.lineWidth = 4; g.lineJoin = 'round';
+    g.beginPath(); debut = true;
+    for (let v = t1; v <= t2 + 0.001; v += 0.2) {
+      const y = bas - (bas - hautAir) * airU((v - q.t0) % q.cycle, q.cycle);
+      debut ? g.moveTo(X(v), y) : g.lineTo(X(v), y); debut = false;
+    }
+    g.stroke();
+  }
+  g.font = POLICE; g.fillStyle = '#555'; g.strokeStyle = '#e1e4ee'; g.lineWidth = 1;
+  if (fige) {                                        // seconds since the start of the trial
+    const pas = dur > 150 ? 30 : dur > 70 ? 20 : 10;
+    for (let s = 0; s <= dur; s += pas) { const x = X(essai.debut + s); if (x >= G - 1 && x <= W - D + 1) g.fillText(s + ' s', x - 18, H - 10); }
+  } else for (let s = 0; s <= FENETRE; s += 10) g.fillText(s ? '-' + s + ' s' : '0', X(tF - s) - (s ? 26 : 12), H - 10);
+  const pts = rythme.filter(p => p.t >= tF - dur && p.t <= tF);
+  if (pts.length > 3) {
+    const tri = pts.map(p => p.bpm).sort((a, b) => a - b);          // scale: 2 % to 98 % of the values, so that one
+    let min = tri[Math.floor(tri.length * 0.02)], max = tri[Math.ceil(tri.length * 0.98) - 1];   // stray value cannot stretch it
+    const milieu = (min + max) / 2, demi = Math.max(8, (max - min) / 2 + 2);
+    min = milieu - demi; max = milieu + demi;
+    const Y = v => HAUT + (H - HAUT - BAS) * (1 - (Math.min(max, Math.max(min, v)) - min) / (max - min));
+    for (let v = Math.ceil(min / 5) * 5; v <= max; v += 5) {
+      g.beginPath(); g.moveTo(G, Y(v)); g.lineTo(W - D, Y(v)); g.stroke();
+      g.fillText(v, 14, Y(v) + 8);
+    }
+    const morceaux = []; let cur = [];            // the line is cut where nothing was measured
+    for (const p of pts) { if (cur.length && p.t - cur[cur.length - 1].t > 1.5) { morceaux.push(cur); cur = []; } cur.push(p); }
+    morceaux.push(cur);
+    g.strokeStyle = '#e5405e'; g.lineWidth = 6; g.lineJoin = 'round'; g.lineCap = 'round';
+    for (const m of morceaux) {
+      if (m.length < 2) continue;
+      g.beginPath();
+      m.forEach((p, i) => i ? g.lineTo(X(p.t), Y(p.bpm)) : g.moveTo(X(p.t), Y(p.bpm)));
+      g.stroke();
+    }
+    const l = pts[pts.length - 1];
+    if (!fige && tF - l.t < 3) { g.fillStyle = '#e5405e'; g.beginPath(); g.arc(X(l.t), Y(l.bpm), 12, 0, 7); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 4; g.stroke(); }
+  } else {
+    g.fillStyle = '#8a90a5'; g.textAlign = 'center';
+    g.fillText('Ton pouls apparaîtra ici quelques secondes après la pose du doigt.', (G + W - D) / 2, (HAUT + H - BAS) / 2);
+    g.textAlign = 'left';
+  }
+}
+requestAnimationFrame(dessinerRythme);
+
+function dessinerPli(r) {
+  const { g, W, H } = toile('pli');
+  if (!W || !r) return;
+  const G = 70, D = 16, HAUT = 40, BAS = 40;
+  const milieu = (r.min + r.max) / 2, demi = Math.max(6, (r.max - r.min) / 2 + 2), min = milieu - demi, max = milieu + demi;
+  const X = s => G + (W - G - D) * s / r.cycle, Y = v => HAUT + (H - HAUT - BAS) * (1 - (v - min) / (max - min));
+  g.fillStyle = '#dcebff'; g.fillRect(X(0), HAUT, X(r.cycle / 2) - X(0), H - HAUT - BAS);
+  g.font = POLICE; g.fillStyle = '#555'; g.strokeStyle = '#ddd'; g.lineWidth = 1;
+  g.fillText('inspiration', X(r.cycle / 4) - 60, 28); g.fillText('expiration', X(3 * r.cycle / 4) - 55, 28);
+  for (let s = 0; s <= r.cycle; s += W < 1000 ? 2 : 1) g.fillText(s + ' s', X(s) - (s === r.cycle ? 40 : 12), H - 10);
+  for (let v = Math.ceil(min / 2) * 2; v <= max; v += 2) {
+    g.beginPath(); g.moveTo(G, Y(v)); g.lineTo(W - D, Y(v)); g.stroke();
+    g.fillText(v, 14, Y(v) + 8);
+  }
+  g.strokeStyle = '#6b4fbb'; g.fillStyle = '#6b4fbb'; g.lineWidth = 5; g.lineJoin = 'round'; g.beginPath();
+  r.pli.forEach((p, i) => i ? g.lineTo(X(p.s), Y(p.bpm)) : g.moveTo(X(p.s), Y(p.bpm)));
+  g.stroke();
+  for (const p of r.pli) { g.beginPath(); g.arc(X(p.s), Y(p.bpm), 9, 0, 7); g.fill(); }
+}
+
+function dessinerForme(f) {
+  const { g, W, H } = toile('forme');
+  if (!W || !f) return;
+  const G = 90, D = 20, HAUT = 20, BAS = 50;
+  let min = Infinity, max = -Infinity;
+  for (const p of f.points) { min = Math.min(min, p.v); max = Math.max(max, p.v); }
+  const X = u => G + (W - G - D) * u, Y = v => HAUT + (H - HAUT - BAS) * (1 - (v - min) / (max - min));
+  g.font = POLICE; g.fillStyle = '#555'; g.strokeStyle = '#ddd'; g.lineWidth = 1;
+  for (let ms = -200; ms < 1000 * f.periode; ms += W < 1000 ? 200 : 100) {   // time axis, 0 = foot of the beat
+    const u = f.debut + ms / 1000 / f.periode;
+    if (u < 0 || u > 1) continue;
+    g.beginPath(); g.moveTo(X(u), HAUT); g.lineTo(X(u), H - BAS); g.stroke();
+    g.fillText(ms + ' ms', X(u) - 30, H - 14);
+  }
+  g.fillText(max.toFixed(0), 8, Y(max) + 16); g.fillText(min.toFixed(0), 8, Y(min)); g.fillText('0', 8, Y(0) + 8);
+  g.beginPath(); g.moveTo(G, Y(0)); g.lineTo(W - D, Y(0)); g.stroke();
+  g.fillStyle = 'rgba(90,90,90,0.35)';
+  for (const p of f.points) { g.beginPath(); g.arc(X(p.u), Y(p.v), 5, 0, 7); g.fill(); }
+  g.strokeStyle = CANAUX.find(c => c.cle === f.cle).couleur; g.lineWidth = 5; g.lineJoin = 'round'; g.beginPath();
+  f.courbe.forEach((p, i) => i ? g.lineTo(X(p.u), Y(p.v)) : g.moveTo(X(p.u), Y(p.v)));
+  g.stroke();
+}
+
+function dessinerCourbe() {
+  const { g, W, H } = toile('courbe');
+  requestAnimationFrame(dessinerCourbe);
+  let cle = $('canal').value;
+  if (cle === 'auto') cle = doigtDirect ? doigtDirect.cle : 's0';
+  const c = CANAUX.find(k => k.cle === cle);
+  if (W && direct.length > 2) {
+    const tf = direct[direct.length - 1].t, pts = direct.filter(e => e.t >= tf - 10);
+    let min = Infinity, max = -Infinity;
+    for (const e of pts) { min = Math.min(min, e[cle]); max = Math.max(max, e[cle]); }
+    if (max - min < 4) { max += 2; min -= 2; }
+    g.strokeStyle = c.couleur; g.lineWidth = 3; g.beginPath();
+    pts.forEach((e, i) => {
+      const x = W * (1 - (tf - e.t) / 10), y = H - 20 - (H - 40) * (e[cle] - min) / (max - min);
+      i ? g.lineTo(x, y) : g.moveTo(x, y);
+    });
+    g.stroke();
+    g.fillStyle = '#555'; g.font = POLICE;
+    g.fillText(max.toFixed(0), 8, 26); g.fillText(min.toFixed(0), 8, H - 8);
+    g.textAlign = 'right';
+    g.fillText(c.nom + ', 10 dernières secondes', W - 10, 26);
+  }
+}
+requestAnimationFrame(dessinerCourbe);
+
+function dessinerSpectre(res) {
+  const { g, W, H } = toile('spectre');
+  if (!W) return;
+  g.fillStyle = '#555'; g.font = POLICE; g.strokeStyle = '#ddd'; g.lineWidth = 1;
+  for (let bpm = 60; bpm <= BPM_MAX; bpm += 20) {
+    const x = W * (bpm - BPM_MIN) / (BPM_MAX - BPM_MIN);
+    g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H - 30); g.stroke();
+    g.fillText(bpm, x - 16, H - 6);
+  }
+  for (const c of res.canaux) {
+    if (c.plat) continue;
+    const max = Math.max(...c.spectre.map(s => s.p));      // each channel on its own scale
+    g.strokeStyle = c.couleur; g.lineWidth = 3; g.beginPath();
+    c.spectre.forEach((s, i) => {
+      const x = W * (s.bpm - BPM_MIN) / (BPM_MAX - BPM_MIN), y = (H - 34) * (1 - s.p / max) + 2;
+      i ? g.lineTo(x, y) : g.moveTo(x, y);
+    });
+    g.stroke();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Without a robot: index.html?demo=pouls or ?demo=bruit plays a simulated sensor.
+// In the simulation the pulse follows a breath of 10 s, and the guide falls in step with it.
+// ---------------------------------------------------------------------------
+function demarrerDemo(genre) {
+  const ech = simuler(genre === 'bruit' ? 'bruit' : 'pouls', 3600, 72, 0.04, 0.1);
+  demoDebut = maintenant(); let i = 0;
+  setInterval(() => {
+    const t = maintenant();
+    while (i < ech.length && ech[i].t <= t - demoDebut) recevoir({ ...ech[i++] }, t);
+  }, 20);
+  caracteristique = {}; $('enregistrer').disabled = false;
+  $('etat').textContent = 'Démonstration sans robot (' + genre + ').';
+}
+const demo = new URLSearchParams(location.search).get('demo');
+if (demo) demarrerDemo(demo);
+</script>
+</body>
+</html>
