@@ -92,7 +92,7 @@
 <div class="etapes">
   <div class="etape">
     <div class="t"><b class="n">1</b>Branche le robot</div>
-    <button id="connecter" class="second">Connecter le robot</button><button id="deconnecter" disabled>Déconnecter</button>
+    <button id="connecter" class="second">Connecter le robot</button>
     <span id="etat">Pas connecté.</span>
   </div>
   <div class="etape">
@@ -759,14 +759,14 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') $('qrFond').
 
 // ---- connection ---------------------------------------------------------------
 let appareilBt = null;
-$('deconnecter').onclick = () => { if (appareilBt && appareilBt.gatt.connected) appareilBt.gatt.disconnect(); };
 $('connecter').onclick = async () => {
+  if (appareilBt && appareilBt.gatt.connected) { appareilBt.gatt.disconnect(); return; }       // the button disconnects once connected
   try {
     if (!navigator.bluetooth) throw new Error('Ce navigateur n\'a pas le Bluetooth web (utiliser Chrome).');
     const appareil = await navigator.bluetooth.requestDevice({ filters: [{ services: [SERVICE] }] });
-    $('etat').textContent = 'Connexion…';
+    $('etat').textContent = 'Connexion…'; $('connecter').disabled = true;
     appareil.addEventListener('gattserverdisconnected', () => {
-      caracteristique = null; appareilBt = null; $('enregistrer').disabled = true; $('deconnecter').disabled = true; $('connecter').disabled = false;
+      caracteristique = null; appareilBt = null; $('enregistrer').disabled = true; $('connecter').textContent = 'Connecter le robot'; $('connecter').disabled = false;
       $('etat').textContent = 'Robot déconnecté.';
       if (guide) arreterGuide(); else if (enreg) terminer();
     });
@@ -780,10 +780,11 @@ $('connecter').onclick = async () => {
     });
     await caracteristique.startNotifications();
     await caracteristique.writeValueWithResponse(new Uint8Array([STREAM_WRITE_STATE, OTHERS]));
-    $('enregistrer').disabled = false; $('deconnecter').disabled = false; $('connecter').disabled = true;
+    $('enregistrer').disabled = false; $('connecter').textContent = 'Déconnecter'; $('connecter').disabled = false;
     $('etat').textContent = 'Connecté.';
   } catch (err) {
-    $('etat').textContent = 'Erreur : ' + err.message;
+    if (appareilBt && appareilBt.gatt.connected) appareilBt.gatt.disconnect();           // half-made link: start again cleanly
+    $('etat').textContent = 'Erreur : ' + err.message; $('connecter').disabled = false;
   }
 };
 
