@@ -73,6 +73,12 @@
   details[open] { padding-bottom: 12px; }
   .savoir li { margin: 4px 0; }
   .question { background: #eef7ee; border-left: 4px solid #5fb86e; border-radius: 8px; padding: 6px 12px; margin: 8px 0; }
+  .qr-fond { position: fixed; inset: 0; z-index: 90; background: rgba(20, 20, 40, .84); display: grid; place-items: center; padding: 16px; }
+  .qr-fond[hidden] { display: none; }
+  .qr-carte { width: min(94vw, calc(100dvh - 32px), 780px); border-radius: 18px; background: #fff; box-shadow: 0 10px 40px rgba(0,0,0,.45); overflow: hidden; }
+  .qr-carte svg { display: block; width: 100%; height: auto; aspect-ratio: 1; }
+  .qr-fermer { position: absolute; top: 12px; right: 12px; width: 52px; height: 52px; border-radius: 50%; background: #fff; font-size: 26px; line-height: 1;
+               padding: 0; margin: 0; box-shadow: 0 3px 0 rgba(0,0,0,.3); }
   h3.sep { font-size: 14px; text-transform: uppercase; letter-spacing: .06em; color: var(--gris); margin: 24px 0 4px; }
 </style>
 </head>
@@ -197,6 +203,9 @@
 
 <details>
   <summary>Enregistrements et réglages</summary>
+  <p><b>Lien vers l'application</b> (pour que les élèves la scannent) :
+    <button id="qrWeb">Code QR</button><button id="qrIos">iOS · Bluefy</button></p>
+  <p class="note" id="adresse"></p>
   <p>Durée d'une inspiration (et d'une expiration) :
     <select id="demiCycle">
       <option value="3">3 s</option>
@@ -218,6 +227,12 @@
   <p class="note">L'exercice de respiration est enregistré lui aussi. Ce n'est pas une mesure médicale : le Thymio n'est pas un appareil de santé et les données ne quittent pas cette page.</p>
 </details>
 </main>
+
+<div id="qrFond" class="qr-fond" hidden role="dialog" aria-modal="true" aria-label="Code QR de l'application">
+  <div class="qr-carte"><svg id="qrSvg" shapeRendering="crispEdges" role="img" aria-label="Code QR"></svg></div>
+  <button class="qr-fermer" id="qrFermer" aria-label="Fermer">✕</button>
+</div>
+<script src="qrcode.js"></script>
 
 <script>
 // ---------------------------------------------------------------------------
@@ -717,6 +732,30 @@ setInterval(() => {
     : !doigtDirect ? 'Pose un doigt sur un capteur de sol et ne bouge plus.'
     : suivi.nombre === null ? 'Doigt reconnu sur le capteur ' + doigtDirect.court + '. Je cherche ton pouls…' : 'Doigt reconnu sur le capteur ' + doigtDirect.court + '.';
 }, 500);
+
+// ---- QR code of the application (settings): the teacher shows it full screen, the pupils scan it ---------------------
+// The codes always hold the public address, never the address the teacher happens to be on (a file or localhost
+// could not be reached from the pupils' tablets). The Bluefy form (iOS has no Web Bluetooth in Safari) is the usual
+// "bluefy://open?url=" one, not checked on an iPad.
+const APP_URL = 'https://francescomondada.github.io/thymio3-pulse/';
+const LIENS = { qrWeb: APP_URL, qrIos: 'bluefy://open?url=' + encodeURIComponent(APP_URL) };
+$('adresse').textContent = APP_URL;
+function montrerQr(texte) {
+  const qr = qrcode(0, 'M'); qr.addData(texte, 'Byte'); qr.make();
+  const n = qr.getModuleCount(), marge = 4; let d = '';
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    if (!qr.isDark(r, c)) continue;
+    let k = 1; while (c + k < n && qr.isDark(r, c + k)) k++;
+    d += 'M' + c + ' ' + r + 'h' + k + 'v1h-' + k + 'z'; c += k - 1;
+  }
+  const v = -marge + ' ' + -marge + ' ' + (n + 2 * marge) + ' ' + (n + 2 * marge);
+  $('qrSvg').setAttribute('viewBox', v);
+  $('qrSvg').innerHTML = '<rect x="' + -marge + '" y="' + -marge + '" width="' + (n + 2 * marge) + '" height="' + (n + 2 * marge) + '" fill="#fff"/><path d="' + d + '" fill="#000"/>';
+  $('qrFond').hidden = false;
+}
+for (const id in LIENS) $(id).onclick = () => { try { montrerQr(LIENS[id]); } catch (err) { $('etat').textContent = 'Code QR impossible : ' + err.message; } };
+$('qrFond').onclick = () => { $('qrFond').hidden = true; };
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('qrFond').hidden = true; });
 
 // ---- connection ---------------------------------------------------------------
 let appareilBt = null;
